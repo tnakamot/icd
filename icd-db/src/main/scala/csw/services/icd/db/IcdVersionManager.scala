@@ -549,7 +549,7 @@ case class IcdVersionManager(db: MongoDB, query: IcdDbQuery) {
       ).asDBObject
       db(icdCollName).insert(obj, WriteConcern.ACKNOWLEDGED)
     } else {
-      println(s"Warning: Not adding ICD version $icdVersion between $subsystem-$subsystemVersion and $target-$targetVersion, since not all referenecd subsystem versions exist")
+      println(s"Warning: Not adding ICD version $icdVersion between $subsystem-$subsystemVersion and $target-$targetVersion, since not all referenced subsystem versions exist")
     }
   }
 
@@ -579,9 +579,15 @@ case class IcdVersionManager(db: MongoDB, query: IcdDbQuery) {
    * @param target the ICD's target subsystem
    */
   def getIcdVersions(subsystem: String, target: String): List[IcdVersionInfo] = {
+    // ICDs are stored with the two subsystems sorted by name
+    val subsystems = List(subsystem, target)
+    val sorted = subsystems.sorted
+    val s = sorted.head
+    val t = sorted.tail.head
+
     if (collectionExists(icdCollName)) {
       db(icdCollName)
-        .find(MongoDBObject(subsystemKey -> subsystem, targetKey -> target))
+        .find(MongoDBObject(subsystemKey -> s, targetKey -> t))
         .sort(idKey -> -1)
         .map { obj =>
           IcdVersionInfo(
